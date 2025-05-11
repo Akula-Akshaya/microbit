@@ -1,67 +1,82 @@
+# Tetris-Microbit
 
-tertris- microbit
+A feature-rich implementation of Tetris for the BBC micro:bit platform, featuring multiple game modes, advanced sensor interactions, and multiplayer functionality.
 
-A feature-rich implementation of Tetris for the BBC micro platform, featuring multiple game modes, advanced sensor interactions, and multiplayer functionality.
+---
 
+## 🚀 Features
 
-Features
+### Multiple Game Modes
+- **Classic**: Traditional Tetris gameplay  
+- **Tilt**: Control pieces by tilting the micro:bit  
+- **Battle**: Multiplayer mode—clearing multiple lines sends “garbage” to opponents  
+- **Hardcore**: Increased difficulty with faster drop speeds and tilt controls  
 
-Multiple Game Modes:
+### Sensor Integration
+- **Accelerometer**: Tilt controls  
+- **Temperature sensor**: Activates “Fire Mode” (clears bottom row)  
+- **Microphone**: Voice-controlled instant drop  
+- **Compass**: Controls gravity direction  
+- **Shake gesture**: Scrambles the board  
 
-Classic: Traditional Tetris gameplay
-Tilt: Control pieces by tilting the micro
-Battle: Multiplayer mode where clearing multiple lines sends "garbage" to opponents
-Hardcore: Increased difficulty with faster drop speeds and tilt controls
+### Advanced Gameplay Elements
+- High score tracking  
+- Increasing difficulty levels  
+- Visual and sound effects  
+- Pause functionality  
 
+---
 
-Sensor Integration:
+## 🎮 How to Play
 
-Tilt controls using the accelerometer
-Temperature sensor activates "Fire Mode" (clears bottom row)
-Microphone enables voice-controlled instant drop
-Compass controls gravity direction
-Shake gesture scrambles the board
+1. **Flash** the `tetris.py` file to your micro:bit.  
+2. **Controls**:
+   - **Button A**: Rotate piece (or move left in Tilt mode)  
+   - **Button B**: Move right  
+   - **A + B** together: Instant drop  
+   - **Logo touch**: Pause game  
+   - **Shake**: Scramble board  
+   - **Loud sound**: Instant drop  
+   - **Compass north**: Change gravity  
+   - **High temperature**: Activate Fire Mode  
 
+3. **Select Game Mode**:  
+   At the menu, press **A** or **B** to cycle modes, then **A + B** to start.
 
-Advanced Gameplay Elements:
+---
 
-High score tracking
-Increasing difficulty
-Visual and sound effects
-Pause functionality
+## 🛠 Installation
 
+1. **Download** `src/tetris.py`  
+2. **Connect** your micro:bit to your computer  
+3. **Flash** using:
+   - [Mu Editor](https://codewith.mu/)  
+   - or the official [MicroPython Editor](https://python.microbit.org/)  
 
+---
 
-How to Play
+## 📋 Requirements
 
-Setup: Flash the tetris.py file to your micro.
-Controls:
+- **BBC micro:bit V2** (recommended for full feature set)  
+- **BBC micro:bit V1** (supports basic modes only)  
 
-Button A: Rotate piece (or move left in Tilt mode)
-Button B: Move right
-A+B together: Instant drop
-Logo touch: Pause game
-Shake: Scramble board
-Loud sound: Instant drop
-North compass direction: Change gravity
-High temperature: Activate Fire Mode
+---
 
+## 🤝 Contributors
 
-Game Modes: At the menu, press A/B to cycle through modes, and press both buttons to select a mode.
+This project was built by:
 
-Installation
+-Akshaya
+-Alekhya
+-Satwik
+-Abdul
+-Awwab
+-Sasi
+-Anish
 
-Download the tetris.py file
-Connect your micro to your computer
-Flash the file using the Mu Editor or the micro Python Editor
+---
 
-Requirements
+## 🙏 Acknowledgements
 
-BBC micro V2 (recommended for all features)
-BBC micro V1 (limited functionality)
-
-
-Acknowledgements
-
-Inspired by the classic Tetris game created by Alexey Pajitnov
-Built using the micro Python API
+- Inspired by the classic Tetris game created by Alexey Pajitnov  
+- Built using the MicroPython API for BBC micro:bit  
