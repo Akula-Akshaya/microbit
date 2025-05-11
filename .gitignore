@@ -1,0 +1,11 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Microbit generated
+.tetris_hs
+
+# OS files
+.DS_Store
+Thumbs.db
