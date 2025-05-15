@@ -44,6 +44,10 @@
 .equ PIN_CNF_PULL_PULLUP,   3
 .equ PIN_CNF_SENSE_DISABLED, 0
 
+// Constants for random number generation
+.equ RANDOM_MULTIPLIER, 1103
+.equ RANDOM_INCREMENT, 12345
+
 // Stack setup
 .section .stack
 .align 3
@@ -56,7 +60,7 @@ stack_bottom:
 .align 2
 current_random:    .word 42      // Start with seed value of 42
 last_button_state: .word 1       // Last button state (1 = not pressed)
-display_buffer:    .space 5*5    // 5x5 LED matrix buffer
+display_buffer:    .space 25     // 5x5 LED matrix buffer (25 bytes)
 digits_buffer:     .space 8      // Buffer for storing digits (max 3 digits + null)
 
 // Font data for 0-9 digits (5x5 pixel format, each digit is represented by 5 bytes)
@@ -272,7 +276,8 @@ configure_pin_as_output:
     add r4, r4, r1, lsl #2  // Each pin config is 4 bytes: PINCNF + (pin * 4)
     
     // Configure pin: direction=output, input=disconnected, pull=disabled, sense=disabled
-    mov r5, #(PIN_CNF_DIR_OUTPUT | (PIN_CNF_INPUT_CONNECT << 1) | (PIN_CNF_PULL_DISABLED << 2) | (PIN_CNF_SENSE_DISABLED << 16))
+    // Using immediate values instead of combined constants
+    mov r5, #1  // PIN_CNF_DIR_OUTPUT
     str r5, [r0, r4]
     
     pop {r4-r5, pc}
@@ -288,7 +293,8 @@ configure_pin_as_input_pullup:
     add r4, r4, r1, lsl #2  // Each pin config is 4 bytes
     
     // Configure pin: direction=input, input=connected, pull=pullup, sense=disabled
-    mov r5, #(PIN_CNF_DIR_INPUT | (PIN_CNF_INPUT_CONNECT << 1) | (PIN_CNF_PULL_PULLUP << 2) | (PIN_CNF_SENSE_DISABLED << 16))
+    // Using immediate value 12 (bit 2 set for pull-up)
+    mov r5, #12  // Binary 1100 (pull-up enabled, input mode)
     str r5, [r0, r4]
     
     pop {r4-r5, pc}
@@ -409,7 +415,7 @@ check_button_a_exit_update:
     pop {r4-r7, pc}
 
 // Generate a new random number between RANDOM_MIN and RANDOM_MAX
-// Improved random number generator using a simpler algorithm
+// Fixed to avoid using large immediate values in multiplication
 generate_random_number:
     push {r4-r7, lr}
     
@@ -418,28 +424,36 @@ generate_random_number:
     ldr r5, [r4]
     
     // Use a simpler random algorithm: X_next = (a*X + c) mod m
-    // Using smaller values for better stability: a=1103, c=12345
-    mov r6, #1103
+    // Using smaller values: a=1103, c=12345
+    // Split the multiplication into smaller operations
+    
+    // First multiply by 1103
+    ldr r6, =RANDOM_MULTIPLIER
     mul r5, r5, r6
     
-    add r5, r5, #12345
+    // Then add 12345
+    ldr r6, =RANDOM_INCREMENT
+    add r5, r5, r6
     
     // Store the new seed
     str r5, [r4]
     
     // Scale to range [RANDOM_MIN, RANDOM_MAX]
     // Take only lower 16 bits (mod 2^16)
-    and r5, r5, #0xFFFF
+    and r5, r5, #0xFF   // Simplified, uses lower 8 bits only
     
-    // Perform simple scaling: (rand % range) + min
-    mov r6, #RANDOM_MAX
-    sub r6, r6, #RANDOM_MIN
-    add r6, r6, #1        // r6 = range size
+    // Perform simple scaling without division: (rand % range) + min
+    // We'll use a simpler approach: (rand % 10) + 1
+    cmp r5, #100
+    movge r5, #0        // Wrap around if > 100
     
-    // Perform modulo (r5 % r6)
-    udiv r7, r5, r6       // r7 = r5 / r6
-    mul r7, r7, r6        // r7 = (r5 / r6) * r6
-    sub r5, r5, r7        // r5 = r5 - ((r5 / r6) * r6) = r5 % r6
+    // Modulo by 10 using repeated subtraction (avoids division)
+    mod_by_ten:
+        cmp r5, #10
+        blt mod_done
+        sub r5, r5, #10
+        b mod_by_ten
+    mod_done:
     
     // Add RANDOM_MIN to get the final range
     add r5, r5, #RANDOM_MIN
@@ -651,17 +665,27 @@ extract_digits_loop:
     cmp r4, #0
     beq extract_digits_loop_end
     
-    // Get last digit (number % 10)
-    mov r0, r4
-    mov r1, #10
-    bl divide          // r0 = quotient, r1 = remainder
+    // Get last digit (number % 10) using repeated subtraction
+    mov r7, r4            // r7 = temporary copy of number
+    mov r8, #0            // r8 = quotient (number / 10)
+    
+digit_divide_loop:
+    cmp r7, #10
+    blt digit_divide_done  // If < 10, we're done
+    sub r7, r7, #10        // Subtract 10
+    add r8, r8, #1         // Increment quotient
+    b digit_divide_loop
+    
+digit_divide_done:
+    // r7 now contains remainder (number % 10)
+    // r8 contains quotient (number / 10)
     
     // Store digit (remainder)
-    strb r1, [r5, r6]
+    strb r7, [r5, r6]
     add r6, r6, #1
     
     // Update number (number / 10)
-    mov r4, r0
+    mov r4, r8
     
     b extract_digits_loop
 extract_digits_loop_end:
@@ -716,17 +740,29 @@ display_digits_loop:
 display_number_done:
     pop {r4-r12, pc}
 
-// Divide function: r0 = dividend, r1 = divisor
+// Custom divide function without using the UDIV instruction
+// r0 = dividend, r1 = divisor
 // Returns: r0 = quotient, r1 = remainder
 divide:
-    push {r4, lr}
+    push {r2-r4, lr}
     
-    mov r4, r0            // r4 = dividend
-    udiv r0, r4, r1       // r0 = dividend / divisor
-    mul r2, r0, r1        // r2 = quotient * divisor
-    sub r1, r4, r2        // r1 = dividend - (quotient * divisor) = remainder
+    mov r2, r0        // r2 = dividend
+    mov r3, #0        // r3 = quotient
     
-    pop {r4, pc}
+divide_loop:
+    cmp r2, r1        // Compare dividend with divisor
+    blt divide_done   // If dividend < divisor, we're done
+    
+    sub r2, r2, r1    // dividend = dividend - divisor
+    add r3, r3, #1    // quotient++
+    
+    b divide_loop
+    
+divide_done:
+    mov r0, r3        // r0 = quotient
+    mov r1, r2        // r1 = remainder
+    
+    pop {r2-r4, pc}
 
 // Display a digit on the LED matrix
 // r0 = digit (0-9)
@@ -788,7 +824,10 @@ skip_pixel:
     
     // Decrement refresh counter
     subs r11, r11, #1
-    bne digit_refresh_loop
+    bne digit_refresh_loop  // Continue refreshing if counter > 0
     
 display_digit_done:
     pop {r4-r11, pc}
+
+// End of program
+.end
